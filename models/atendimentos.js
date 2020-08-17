@@ -2,19 +2,42 @@ const conexao = require('../infraestrutura/conexao')
 const moment = require('moment');
 
 class Atendimento{
-    adiciona(atendimento){
+    adiciona(atendimento, resp){
         const dataCriacao = moment().format('YYYY-MM-DD HH:MM:SS')
         const data = moment(atendimento.data, 'DD/MM/YYYY').format('YYYY-MM-DD HH:MM:SS')
         const atendimentoDatado = {...atendimento, dataCriacao}
 
-        const sql = 'INSERT INTO Atendimentos SET ?'
-        conexao.query(sql, atendimentoDatado, (erro, resultado)=>{
-            if(erro){
-               console.log(erro);
-            }else {
-                console.log(resultado)
+        const dataEhValida = moment(data).isSameOrAfter(dataCriacao);
+        const clienteEhValido = atendimento.cliente.length >= 5;
+        const validacoes = [
+            {
+                nome: 'data',
+                valido: dataEhValida,
+                mensagem: 'data errada'
+            },
+            {
+                nome: 'cliente',
+                valido: clienteEhValido,
+                mensagem: 'nome com menos de 5 caracteres'
             }
-        })
+        ]
+        const erros = validacoes.filter(campo => !campo.valido);
+        const existemErros = erros.length;
+
+        if(existemErros){
+            resp.status(400).json(erros)
+        }else{
+
+            const sql = 'INSERT INTO Atendimentos SET ?'
+            conexao.query(sql, atendimentoDatado, (erro, resultado)=>{
+                if(erro){
+                   resp.status(400).json(erro)
+                }else {
+                    resp.status(201).json(resultado);
+                }
+            })
+        }
+
     }
 }
 
